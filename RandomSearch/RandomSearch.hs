@@ -27,10 +27,9 @@ candidate nDims seed min max = take nDims (randomList seed min max)
 randomSearch :: (Float -> Float) -> ([Float] -> Float) -> Float -> Float -> Int -> Int -> Float
 -- the top-level function takes the cost function, the optimization function to be applied
 -- to the list of costs, the min and max range of values, the random seed and the number of iterations 
--- the list comprehension is infinite, but take just returns the first n values
 -- the seed is different for each iteration to ensure that different candidates are generated
 randomSearch costFn optimizeFn min max seed iters =
-	optimizeFn (take iters [cost costFn (candidate 2 (seed * n + 137) min max) | n <- [1..]] )
+	optimizeFn [cost costFn (candidate 2 (seed * n + 137) min max) | n <- [1..iters]]
 
 main = do
           putStr "Value found is: "

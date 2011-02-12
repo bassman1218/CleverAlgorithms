@@ -20,40 +20,29 @@ cost :: (Float -> Float ) -> [Float] -> Float
 -- sum the values of the cost function applied to each element of the list
 cost costFn lst = foldr (\n acc -> acc + (costFn n)) 0 lst
 
-
-
-randomSearch :: (Float -> Float) -> ([Float] -> Float) -> Int -> Float -> Float -> Int -> Int -> Float
--- the top-level function takes the cost function, the optimization function to be applied
--- to the list of costs, the min and max range of values, the random seed and the number of iterations 
--- the seed is different for each iteration to ensure that different candidates are generated
-randomSearch costFn optimizeFn nDims min max seed iters =
-	let randNums = randomList seed min max;
-	    candidate :: Int -> [Float]
-	    -- generate a list of length equal to the number of dimensions
-            candidate iter = take nDims (drop ((iter - 1) * nDims) randNums)
-	in
-	optimizeFn [cost costFn (candidate n) | n <- [1..iters]]
-
-randomSearch2 :: (Float -> Float) -> ([Float] -> Float) -> Int -> Float -> Float -> Int -> Int -> Float
+randomSearch :: (Float -> Float) -> ((Float, [Float]) -> (Float, [Float]) -> (Float, [Float])) -> Int -> Float -> Float -> Int -> Int -> (Float, [Float])
 -- In this version the list of random numbers is split into groups of length equal to number of dimensions
 -- and the cost function is applied to each group
 -- The seed is only used once and the overall speed is much better
-randomSearch2 costFn optimizeFn nDims min max seed iters =
+randomSearch costFn optimizeFn nDims min max seed iters =
 	let randNums = randomList seed min max;
-	    costs :: Int -> [Float] -> Int -> [Float]
+	    costs :: Int -> [Float] -> Int -> [(Float,[Float])]
 	    costs nDims lst 0 = []
             costs nDims lst iters = let (candidate, rest) = splitAt nDims lst
 			            in
-                                    cost costFn candidate : costs nDims rest (iters - 1) 
+                                    (cost costFn candidate, candidate) : costs nDims rest (iters - 1) 
         in
-	optimizeFn $ costs nDims randNums iters
+	foldr1 minCost (costs nDims randNums iters)
+
+minCost :: (Float, [Float]) -> (Float, [Float]) -> (Float, [Float])
+minCost p1@(c1, _) p2@(c2, _) = if c1 < c2 then p1 else p2
 
 main seed iters = do
           putStr "Value found is: "
 	  let costFn = (\n -> n * n);
-              optimizeFn = minimum;
+              optimizeFn = minCost;
               min = (-5.0);
               max = 5.0;
 	      nDims = 2;
-              v = randomSearch2 costFn optimizeFn nDims min max seed iters
+              v = randomSearch costFn optimizeFn nDims min max seed iters
           print v

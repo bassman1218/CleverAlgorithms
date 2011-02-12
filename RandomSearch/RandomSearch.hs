@@ -18,7 +18,7 @@ randomList seed min max = [x * (max - min) + min | x <- (randoms (mkStdGen seed)
 
 cost :: (Float -> Float ) -> [Float] -> Float
 -- sum the values of the cost function applied to each element of the list
-cost costFn lst = foldr1 (+) [costFn x | x <- lst]
+cost costFn lst = foldr (\n acc -> acc + (costFn n)) 0 lst
 
 
 

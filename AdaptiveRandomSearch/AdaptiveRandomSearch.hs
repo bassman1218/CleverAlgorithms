@@ -22,7 +22,9 @@ cost :: (Float -> Float ) -> [Float] -> Float
 -- sum the values of the cost function applied to each element of the list
 cost costFn lst = foldr (\n acc -> acc + (costFn n)) 0 lst
 
-aRandomSearch :: Float -> [Float] -> Int -> (Float, Float, Int, Int, Float, Float, Int, (Float -> Float)) -> [Float] -> [(Int, Float, [Float])]
+type Trace = [(Int, Float, Float, [Float])]
+
+aRandomSearch :: Float -> [Float] -> Int -> (Float, Float, Int, Int, Float, Float, Int, (Float -> Float)) -> [Float] -> Trace
 -- The search starts at a random point and proceeds by calculating the costs of a 'normal' size step and a 'large' step,
 -- choosing the next candidate within the bounds of the step size around the point.
 -- If either candidate has a better cost than the current point, the two costs are compared and the recursion proceeds
@@ -34,7 +36,7 @@ aRandomSearch initialStepSize initialSolution iters params randomNums =
 	    makeStep' = makeStep min max;
             calcLargeStep' = calcLargeStep iterMult stepFactorLarge stepFactorSmall;
 	    cost' = cost costFn;
-	    aRandomSearch' :: Float -> [Float] -> Int -> Int -> [Float] -> [(Int, Float, [Float])] -> [(Int, Float, [Float])]
+	    aRandomSearch' :: Float -> [Float] -> Int -> Int -> [Float] -> Trace -> Trace
 	    aRandomSearch' _ _ _ 0 _ solutionTrace = solutionTrace
             aRandomSearch' stepSize currentSolution noChangeCount iter randomNums solutionTrace =
 	          let (r1, rest1) = splitAt nDims randomNums;
@@ -47,11 +49,11 @@ aRandomSearch initialStepSize initialSolution iters params randomNums =
                       c2 = cost' s2
                   in if c1 < cc || c2 < cc
                      then if c1 < c2
-                          then aRandomSearch' stepSize s1 0 (iter - 1) rest2 ((iter, c1, s1) : solutionTrace)
-                          else aRandomSearch' largeStepSize s2 0 (iter - 1) rest2 ((iter, c2, s2) : solutionTrace)
+                          then aRandomSearch' stepSize s1 0 (iter - 1) rest2 ((iter, c1, stepSize, s1) : solutionTrace)
+                          else aRandomSearch' largeStepSize s2 0 (iter - 1) rest2 ((iter, c2, largeStepSize, s2) : solutionTrace)
                      else if noChangeCount > noChangeCountMax
-                          then aRandomSearch' stepSize currentSolution (noChangeCount + 1) (iter - 1) rest2 solutionTrace
-                          else aRandomSearch' (stepSize / stepFactorSmall) currentSolution 0 (iter - 1) rest2 solutionTrace
+                          then let newStepSize = (stepSize / stepFactorSmall) in aRandomSearch' newStepSize currentSolution 0 (iter - 1) rest2 ((iter, cc, newStepSize, currentSolution) : solutionTrace)
+                          else aRandomSearch' stepSize currentSolution (noChangeCount + 1) (iter - 1) rest2 solutionTrace
           in aRandomSearch' initialStepSize initialSolution 0 iters randomNums []
 
 makeStep :: Float -> Float -> [Float] -> Float -> [Float] -> [Float]
@@ -76,7 +78,7 @@ calcLargeStep iterMult stepFactorLarge stepFactorSmall stepSize iter =
 
 main seed iters = do
               putStr "The best solution found is: ";
-              let nDims = 3;
+              let nDims = 2;
                   min = (-5.0);
                   max = 5.0;
                   iterMult = 10;

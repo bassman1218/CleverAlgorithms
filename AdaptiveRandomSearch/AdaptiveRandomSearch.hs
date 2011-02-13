@@ -52,7 +52,8 @@ aRandomSearch initialStepSize initialSolution iters params randomNums =
                           then aRandomSearch' stepSize s1 0 (iter - 1) rest2 ((iter, c1, stepSize, s1) : solutionTrace)
                           else aRandomSearch' largeStepSize s2 0 (iter - 1) rest2 ((iter, c2, largeStepSize, s2) : solutionTrace)
                      else if noChangeCount > noChangeCountMax
-                          then let newStepSize = (stepSize / stepFactorSmall) in aRandomSearch' newStepSize currentSolution 0 (iter - 1) rest2 ((iter, cc, newStepSize, currentSolution) : solutionTrace)
+                          then let newStepSize = (stepSize / stepFactorSmall)
+                                 in aRandomSearch' newStepSize currentSolution 0 (iter - 1) rest2 ((iter, cc, newStepSize, currentSolution) : solutionTrace)
                           else aRandomSearch' stepSize currentSolution (noChangeCount + 1) (iter - 1) rest2 solutionTrace
           in aRandomSearch' initialStepSize initialSolution 0 iters randomNums []
 

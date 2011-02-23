@@ -24,7 +24,9 @@ cost costFn lst = foldr (\n acc -> acc + (costFn n)) 0 lst
 
 type Trace = [(Int, Float, Float, [Float])]
 
-aRandomSearch :: Float -> [Float] -> Int -> (Float, Float, Int, Int, Float, Float, Int, (Float -> Float)) -> [Float] -> Trace
+type Params = (Float, Float, Int, Int, Float, Float, Int, (Float -> Float))
+
+aRandomSearch :: Float -> [Float] -> Int -> Params -> [Float] -> Trace
 -- The search starts at a random point and proceeds by calculating the costs of a 'normal' size step and a 'large' step,
 -- choosing the next candidate within the bounds of the step size around the point.
 -- If either candidate has a better cost than the current point, the two costs are compared and the recursion proceeds
@@ -50,9 +52,12 @@ aRandomSearch initialStepSize initialSolution iters params randomNums =
                   in if c1 < cc || c2 < cc
                      then if c1 < c2
                           then aRandomSearch' stepSize s1 0 (iter - 1) rest2 ((iter, c1, stepSize, s1) : solutionTrace)
-                          else aRandomSearch' largeStepSize s2 0 (iter - 1) rest2 ((iter, c2, largeStepSize, s2) : solutionTrace)
+                          else aRandomSearch' largeStepSize s2 0 (iter - 1) rest2
+					      ((iter, c2, largeStepSize, s2) : solutionTrace)
                      else if noChangeCount > noChangeCountMax
-                          then let newStepSize = (stepSize / stepFactorSmall) in aRandomSearch' newStepSize currentSolution 0 (iter - 1) rest2 ((iter, cc, newStepSize, currentSolution) : solutionTrace)
+                          then let newStepSize = (stepSize / stepFactorSmall)
+                               in aRandomSearch' newStepSize currentSolution 0 (iter - 1) rest2 
+						 ((iter, cc, newStepSize, currentSolution) : solutionTrace)
                           else aRandomSearch' stepSize currentSolution (noChangeCount + 1) (iter - 1) rest2 solutionTrace
           in aRandomSearch' initialStepSize initialSolution 0 iters randomNums []
 

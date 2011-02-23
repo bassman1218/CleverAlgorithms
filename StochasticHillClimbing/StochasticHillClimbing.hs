@@ -3,9 +3,9 @@
 --	StochasticHillClimbing.hs                              --
 --                                                             --
 --	This implements a sub-optimal random search in         --
---	a bounded n-dimensional space of floating-point values --
---	where random steps are taken when they improve the     --
---      cost                                                   --                                        --
+--	a space of binary number vectors were random steps are --
+--      taken by flipping one bit. The solution is found if    --
+--      the vector is all 1s.                                   --                                                 --                                        --
 --                                                             --
 -----------------------------------------------------------------
 

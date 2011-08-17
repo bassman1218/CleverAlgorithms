@@ -24,7 +24,6 @@ randomInt randNums lo hi = let [r1] = take 1 randNums
 
 -- an XY coordinate
 type Point = (Float, Float)
-
 square :: Float -> Float
 square n = n * n
 
@@ -35,7 +34,9 @@ permutationPairs :: [Int] -> [(Int, Int)]
 permutationPairs list = zip list ((drop 1 list) ++ (take 1 list))
 
 cost :: [Int] -> [Point] -> Float
-cost permutation cities = foldr (+) 0.0 [euclid2d (cities !! n1) (cities !! n2) | (n1, n2) <- permutationPairs permutation]
+cost tour tsp = let pairs = zip tour ((drop 1 tour) ++ (drop ((length tour) - 1) tour))
+                    list = [euclid2d (tsp!!p1) (tsp!!p2) | (p1, p2) <- pairs]
+                in foldr (+) 0 list
 
 makeInitialPermutation :: [Point] -> [Int]
 makeInitialPermutation cities = [0..((length cities) - 1)]
@@ -49,11 +50,6 @@ randomPermutation (first:rest) randNums =
             (perm, newRandNums) = randomPermutation ((take pos rest) ++ [first] ++ (drop (pos + 1) rest))  (drop 1 randNums)
 	in  ((rest !! pos) : perm, newRandNums)
 
--- tester for random permutations
-permTest :: [Int] -> [Float] -> Int -> [[Int]]
-permTest _ _ 0 = []
-permTest list randNums iters = let (newlist, newRandNums) = randomPermutation list randNums in
-                                     newlist : permTest newlist newRandNums (iters - 1)
 
 reverseSlice :: [Int] -> Int -> Int -> [Int]
 reverseSlice list c1 c2 = let reverseSlice1 list c1 c2 
@@ -100,21 +96,18 @@ doubleBridge list randNums = let quart = floor (fromIntegral(length list) / 4)
                              in ((take pos1 list ) ++ (drop pos3 list) ++ (take (pos3 - pos2) (drop pos2 list)) ++ (take (pos2 - pos1) (drop pos1 list)),
                                  newRandNums3)
 
-perturbation :: [Int] -> [Point] -> [Float] -> ([Int], Float, [Float])
-perturbation indices cities randNums = let (candidate, newRandNums) = doubleBridge indices randNums
-                                       in (candidate, (cost candidate cities), newRandNums)
-
-search :: [Point] -> [Int] -> Float -> Int -> Int -> Int -> [Float] -> [Float] -> ([Int], [Float])
+search :: [Point] -> [Int] -> Float -> Int -> Int -> Int -> [Float] -> [([Int], Float)] -> [([Int], Float)]
 search cities best bestCost maxIters iter maxNoImprov randNums costHistory
-	| iter > maxIters = (best, (reverse costHistory))
-        | otherwise = let (candidate, candidateCost, newRandNums) = perturbation best cities randNums
-                          newCandidate = localSearch candidate cities maxNoImprov newRandNums
-                      in if candidateCost < bestCost
-                         then search cities candidate candidateCost maxIters (iter + 1) maxNoImprov newRandNums (candidateCost : costHistory)
-                         else search cities best bestCost maxIters (iter + 1) maxNoImprov newRandNums costHistory
+	| iter > maxIters = reverse costHistory
+        | otherwise = let (candidate, newRandNums) = doubleBridge best randNums
+                          (newCandidate, newRandNums1) = localSearch candidate cities maxNoImprov newRandNums
+                          newCost = cost newCandidate cities
+                      in if newCost < bestCost
+                         then search cities newCandidate newCost maxIters (iter + 1) maxNoImprov newRandNums1 ((newCandidate, newCost) : costHistory)
+                         else search cities best bestCost maxIters (iter + 1) maxNoImprov newRandNums1 costHistory
 
-main :: ([Int], [Float])
-main = let berlin52 = [(565,575),(25,185),(345,750),(945,685),(845,655),
+berlin52 :: [Point]
+berlin52 = [(565,575),(25,185),(345,750),(945,685),(845,655),
 			(880,660),(25,230),(525,1000),(580,1175),(650,1130),(1605,620),
 			(1220,580),(1465,200),(1530,5),(845,680),(725,370),(145,665),
 			(415,635),(510,875),(560,365),(300,465),(520,585),(480,415),
@@ -123,17 +116,38 @@ main = let berlin52 = [(565,575),(25,185),(345,750),(945,685),(845,655),
 			(685,610),(770,610),(795,645),(720,635),(760,650),(475,960),
 			(95,260),(875,920),(700,500),(555,815),(830,485),(1170,65),
 			(830,610),(605,625),(595,360),(1340,725),(1740,245)]
-           maxIters = 10000
-           maxNoImprov = 100
-	   randNums = randomList 42
-           (first, newRandNums) = randomPermutation (makeInitialPermutation berlin52) randNums
-           firstCost = cost first berlin52
-	   (best, costHistory) = search berlin52 first firstCost maxIters 0 maxNoImprov newRandNums []
-      in (best, costHistory)
+
+trial1 :: [Point]
+trial1 = [(200,850),(850,900),(850,450),(300,200)]
+
+main :: [Point] -> Int -> Int -> Int -> [([Int], Float)]
+main tsp maxIters maxNoImprov  seed = let randNums = randomList seed
+                                          (first, newRandNums) = randomPermutation (makeInitialPermutation tsp) randNums
+                                          firstCost = cost first tsp
+                                      in search tsp first firstCost maxIters 0 maxNoImprov newRandNums [(first, firstCost)]
+
+
            
 
+-- tester for random permutations
+permTest :: [Int] -> [Float] -> Int -> [[Int]]
+permTest _ _ 0 = []
+permTest list randNums iters = let (newlist, newRandNums) = randomPermutation list randNums in
+                                     newlist : permTest newlist newRandNums (iters - 1)
 
-                                                         
+-- tester for stochasticTwoOpt
+s2optTest :: [Int] -> [Point] -> [Float] -> Int -> Float -> [([Int], Float)] -> ([([Int], Float)], Float)
+s2optTest _ _ _ 0 minCost perms = (perms, minCost)
+s2optTest perm cities rs count minCost perms = let (newPerm, newrs) = stochasticTwoOpt perm rs
+                                                   newCost = cost newPerm cities 
+                                               in s2optTest newPerm cities newrs (count - 1) (min newCost minCost) ((newPerm, newCost) : perms)
+
+-- doubelBridge test
+dbTest :: [Int] -> [Float] -> Int -> [[Int]] -> [[Int]]
+dbTest _ _ 0 perms = reverse perms
+dbTest perm rs count perms = let (newPerm, newrs) = doubleBridge perm rs
+                                  in dbTest newPerm newrs (count - 1) (newPerm : perms)
+                                                        
 
 
 

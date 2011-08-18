@@ -13,6 +13,8 @@ module IteratedLocalSearch where
 
 -- the random library: randoms is an infinite list of random numbers between 0 and 1
 import System.Random
+-- for permutations
+import Data.List
 
 randomList :: Int -> [Float]
 -- make an RNG using the seed and return the infinite list of randoms
@@ -142,12 +144,38 @@ s2optTest perm cities rs count minCost perms = let (newPerm, newrs) = stochastic
                                                    newCost = cost newPerm cities 
                                                in s2optTest newPerm cities newrs (count - 1) (min newCost minCost) ((newPerm, newCost) : perms)
 
--- doubelBridge test
+-- doubleBridge test
 dbTest :: [Int] -> [Float] -> Int -> [[Int]] -> [[Int]]
 dbTest _ _ 0 perms = reverse perms
 dbTest perm rs count perms = let (newPerm, newrs) = doubleBridge perm rs
                                   in dbTest newPerm newrs (count - 1) (newPerm : perms)
-                                                        
+
+-- generate a random set of cities
+genCities :: Int -> Float -> Int -> [Point]
+genCities nCities max seed = let genCities1 :: Int -> Float -> [Float] -> [Point]
+                                 genCities1 0 _ _ = []
+                                 genCities1 nCities max (r:rs) = let x = r * max
+                                                                     (r1:rs1) = rs
+                                                                     y = r1 * max
+                                                                 in (x, y) : (genCities1 (nCities - 1) max rs1)
+                             in genCities1 nCities max (randomList seed)
+
+-- find the optimum tour (maximum 8 cities!!)
+optTour :: [Point] -> (Float, [Int])
+optTour cities = let perms = permutations (makeInitialPermutation cities)
+                     opt :: [[Int]] -> (Float, [Int]) -> (Float, [Int])
+                     opt [] best = best
+                     opt (perm:ps) b@(bestCost, tour) = let c = cost perm cities
+                                                        in if c < bestCost 
+                                                           then opt ps (c, perm)
+                                                           else opt ps b
+                 in opt perms (1000000.0, [])
+
+ 
+
+
+
+                                                                  
 
 
 

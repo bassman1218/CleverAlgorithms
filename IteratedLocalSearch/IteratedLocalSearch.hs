@@ -31,24 +31,22 @@ square n = n * n
 euclid2d :: Point -> Point -> Float
 euclid2d (x1, y1) (x2, y2) = sqrt(square(x1 - x2) + square(y1 - y2))
 
+-- form pairs - note pairing stops as soon as the shortest list is exhausted
 permutationPairs :: [Int] -> [(Int, Int)]
-permutationPairs (first:rest) = zip list (rest ++ [first])
+permutationPairs list@(first:rest) = zip list rest
 
 cost :: [Int] -> [Point] -> Float
-cost tour tsp = let pairs = zip tour ((drop 1 tour) ++ (drop ((length tour) - 1) tour))
-                    list = [euclid2d (tsp!!p1) (tsp!!p2) | (p1, p2) <- pairs]
-                in foldr (+) 0 list
+cost tour tsp = foldr (+) 0 [euclid2d (tsp!!p1) (tsp!!p2) | (p1, p2) <- permutationPairs tour]
 
 makeInitialPermutation :: [Point] -> [Int]
 makeInitialPermutation cities = [0..((length cities) - 1)]
 
 randomPermutation :: [Int] -> [Float] -> ([Int], [Float])
 randomPermutation [last] randNums = ([last], randNums)
-randomPermutation (first:rest) randNums =
-	let [r] = take 1 randNums
-	    len = (length rest) - 1
+randomPermutation (first:rest) (r:rs) =
+	let len = (length rest) - 1
 	    pos = round ((fromIntegral len) * r)
-            (perm, newRandNums) = randomPermutation ((take pos rest) ++ [first] ++ (drop (pos + 1) rest))  (drop 1 randNums)
+            (perm, newRandNums) = randomPermutation ((take pos rest) ++ [first] ++ (drop (pos + 1) rest))  rs
 	in  ((rest !! pos) : perm, newRandNums)
 
 
@@ -171,14 +169,15 @@ optTour cities = let perms = permutations (makeInitialPermutation cities)
                  in opt perms (1000000.0, [])
 
 -- run with generated cities
-main2 :: Int -> Float -> Int -> Int -> Int -> (Float, [Int], [Point])
+main2 :: Int -> Float -> Int -> Int -> Int -> (Float, [Int], Float, [Int], [Point])
 main2 nCities max maxIters maxNoImprov seed =
 	let tsp = genCities nCities max seed
+            (optCost, opt) = optTour tsp
 	    randNums = randomList seed
             (first, newRandNums) = randomPermutation (makeInitialPermutation tsp) randNums
             firstCost = cost first tsp
             ((bestTour, bestCost) : _) = search tsp first firstCost maxIters 0 maxNoImprov newRandNums [(first, firstCost)]
-        in (bestCost, bestTour, tsp)
+        in (bestCost, bestTour, optCost, opt, tsp)
 
  
 

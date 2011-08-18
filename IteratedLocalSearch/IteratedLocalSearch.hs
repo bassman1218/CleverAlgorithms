@@ -21,8 +21,7 @@ randomList :: Int -> [Float]
 randomList seed = randoms (mkStdGen seed)
 
 randomInt :: [Float] -> Int -> Int -> (Int, [Float])
-randomInt randNums lo hi = let [r1] = take 1 randNums
-                             in ((floor (fromIntegral(hi - lo) * r1)) + lo, (drop 1 randNums))
+randomInt (r:rs) lo hi = ((floor (fromIntegral(hi - lo) * r)) + lo, rs)
 
 -- an XY coordinate
 type Point = (Float, Float)
@@ -33,7 +32,7 @@ euclid2d :: Point -> Point -> Float
 euclid2d (x1, y1) (x2, y2) = sqrt(square(x1 - x2) + square(y1 - y2))
 
 permutationPairs :: [Int] -> [(Int, Int)]
-permutationPairs list = zip list ((drop 1 list) ++ (take 1 list))
+permutationPairs (first:rest) = zip list (rest ++ [first])
 
 cost :: [Int] -> [Point] -> Float
 cost tour tsp = let pairs = zip tour ((drop 1 tour) ++ (drop ((length tour) - 1) tour))
@@ -170,6 +169,16 @@ optTour cities = let perms = permutations (makeInitialPermutation cities)
                                                            then opt ps (c, perm)
                                                            else opt ps b
                  in opt perms (1000000.0, [])
+
+-- run with generated cities
+main2 :: Int -> Float -> Int -> Int -> Int -> (Float, [Int], [Point])
+main2 nCities max maxIters maxNoImprov seed =
+	let tsp = genCities nCities max seed
+	    randNums = randomList seed
+            (first, newRandNums) = randomPermutation (makeInitialPermutation tsp) randNums
+            firstCost = cost first tsp
+            ((bestTour, bestCost) : _) = search tsp first firstCost maxIters 0 maxNoImprov newRandNums [(first, firstCost)]
+        in (bestCost, bestTour, tsp)
 
  
 
